@@ -1,5 +1,21 @@
 # Audit Observation Form - Specification
 
+## 0. Infrastructure Setup (do first, before any code)
+
+Complete these steps before writing any CI/CD workflow or pushing any code.
+
+- [ ] Create repo and set visibility to public
+- [ ] Enable GitHub Pages via CLI:
+  ```
+  gh api repos/{owner}/{repo}/pages --method POST -f build_type=workflow
+  ```
+- [ ] Confirm Pages source is set to "GitHub Actions" in repo Settings → Pages
+- [ ] Verify `gh auth status` has sufficient scopes (repo, pages)
+
+> **Why first:** The deploy workflow will fail on its very first run with a 404 if Pages is not enabled. This is a prerequisite, not a post-deploy step.
+
+---
+
 ## 1. Purpose
 
 Capture workflow observations during client audits using structured format
@@ -105,11 +121,26 @@ Scenario: Download CSV
 - Integration tests: Form + localStorage (React Testing Library)
 - E2E tests: Full user flow (Playwright)
 
+#### E2E Test Rules
+- Use Playwright-native locators only — do not use Testing Library APIs (`getByDisplayValue`, etc.)
+- Prefer `getByRole()` over `getByText()` to avoid strict mode violations when text appears in multiple elements (e.g. both a heading and a dropdown option)
+- E2E tests must pass in CI before the spec is considered done
+- If browser deps are unavailable locally, verify via `gh run watch` after each push
+
 ### Code Quality
 
 - Linting: ESLint
 - Formatting: Prettier
 - Pre-commit hooks: husky + lint-staged
+
+### CI Discipline
+
+- After every `git push`, immediately run:
+  ```
+  gh run watch <run-id> --repo {owner}/{repo}
+  ```
+- Do not consider any task done until CI is green
+- If CI fails, diagnose immediately with `gh run view --log-failed` before moving on
 
 ### Git Workflow (Trunk-Based)
 
@@ -141,6 +172,8 @@ Document non-obvious choices in `/docs/adr/`:
 - Build: `npm run build`
 - No backend, no API, no CLI
 
+> **Prerequisite:** GitHub Pages must be enabled before the first push (see Section 0).
+
 ## 11. Progress Tracking
 
 - GitHub Project board (tied to repo)
@@ -149,8 +182,10 @@ Document non-obvious choices in `/docs/adr/`:
 
 ## 12. Definition of Done
 
+- [ ] Infrastructure setup complete (Section 0)
 - [ ] All BDD scenarios pass
 - [ ] Tests pass (unit + integration + E2E)
+- [ ] E2E tests verified green in CI via `gh run watch`
 - [ ] Linting clean
 - [ ] CSV download works
 - [ ] Deployed to GitHub Pages
