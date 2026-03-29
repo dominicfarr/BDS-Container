@@ -1,0 +1,2 @@
+npm test -- --ci
+npm run lint
