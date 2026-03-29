@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/BDS-Container/');
-  // Clear localStorage between tests
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 });
@@ -10,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 test('create new workflow', async ({ page }) => {
   await page.getByPlaceholder('Workflow name').fill('Cameron - Takeoff');
   await page.getByRole('button', { name: 'New Workflow' }).click();
-  await expect(page.getByText('Cameron - Takeoff')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Cameron - Takeoff' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add Row' })).toBeVisible();
 });
 
@@ -20,7 +19,7 @@ test('add observation row with auto-numbered step', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Add Row' }).click();
 
-  await expect(page.getByText('1')).toBeVisible();
+  await expect(page.locator('tbody tr').first().locator('td').first()).toHaveText('1');
 });
 
 test('fill required fields and persist to localStorage', async ({ page }) => {
@@ -34,10 +33,11 @@ test('fill required fields and persist to localStorage', async ({ page }) => {
   await row.getByRole('textbox').nth(2).fill('Excel');
   await row.getByRole('textbox').nth(3).fill('Summary report');
 
-  // Verify data persists after reload
   await page.reload();
-  await expect(page.getByDisplayValue('Review document')).toBeVisible();
-  await expect(page.getByDisplayValue('Client folder')).toBeVisible();
+
+  const reloadedRow = page.locator('tbody tr').first();
+  await expect(reloadedRow.getByRole('textbox').nth(0)).toHaveValue('Review document');
+  await expect(reloadedRow.getByRole('textbox').nth(1)).toHaveValue('Client folder');
 });
 
 test('notes field is optional — row saves without it', async ({ page }) => {
@@ -53,7 +53,8 @@ test('notes field is optional — row saves without it', async ({ page }) => {
   // Leave notes empty
 
   await page.reload();
-  await expect(page.getByDisplayValue('Review document')).toBeVisible();
+
+  await expect(page.locator('tbody tr').first().getByRole('textbox').nth(0)).toHaveValue('Review document');
 });
 
 test('character count displays for notes field', async ({ page }) => {
@@ -61,8 +62,7 @@ test('character count displays for notes field', async ({ page }) => {
   await page.getByRole('button', { name: 'New Workflow' }).click();
   await page.getByRole('button', { name: 'Add Row' }).click();
 
-  const row = page.locator('tbody tr').first();
-  await row.locator('textarea').fill('Hello');
+  await page.locator('tbody tr').first().locator('textarea').fill('Hello');
 
   await expect(page.getByText('5 / 500 chars')).toBeVisible();
 });
@@ -78,7 +78,6 @@ test('delete row removes it from the table', async ({ page }) => {
   await page.getByRole('button', { name: 'Delete row' }).first().click();
 
   await expect(page.locator('tbody tr')).toHaveCount(1);
-  // Step renumbers to 1
   await expect(page.locator('tbody tr').first().locator('td').first()).toHaveText('1');
 });
 
@@ -102,7 +101,6 @@ test('download CSV button triggers file download', async ({ page }) => {
 });
 
 test('switch between workflows', async ({ page }) => {
-  // Create two workflows
   await page.getByPlaceholder('Workflow name').fill('WF Alpha');
   await page.getByRole('button', { name: 'New Workflow' }).click();
   await page.getByRole('button', { name: 'Add Row' }).click();
@@ -110,8 +108,8 @@ test('switch between workflows', async ({ page }) => {
   await page.getByPlaceholder('Workflow name').fill('WF Beta');
   await page.getByRole('button', { name: 'New Workflow' }).click();
 
-  // Switch back to WF Alpha via dropdown
   await page.getByRole('combobox').selectOption('WF Alpha');
-  await expect(page.getByText('WF Alpha')).toBeVisible();
+
+  await expect(page.getByRole('heading', { name: 'WF Alpha' })).toBeVisible();
   await expect(page.locator('tbody tr')).toHaveCount(1);
 });
